@@ -1,0 +1,114 @@
+﻿@using WebCmd.Lib
+@using System.Net
+
+@*<div class="input-group flex-nowrap w-100">
+    <input type="text" placeholder="Поиск..." @oninput=@(ProcessSearch) class="form-control"/>
+</div>
+
+<table class="table" style="table-layout: fixed">
+    <thead>
+    <tr>
+        <th scope="col">Title</th>
+        <th scope="col">Help</th>
+        <th scope="col">Type</th>
+        <th scope="col">Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    @if (FilteredMetrics.Any())
+    {
+        @foreach (var metric in FilteredMetrics)
+        {
+            <tr scope="row">
+                <td>
+                    @metric.Title
+                </td>
+                <td>
+                    @metric.Help.Description
+                </td>
+                <td>
+                    @metric.Type.Description
+                </td>
+                <td>
+                    <p>@metric.Value</p>
+                </td>
+            </tr>
+        }
+    }
+    else
+    {
+        <span>Не загружено</span>
+    }
+
+    </tbody>
+</table>*@
+
+
+<div class="list-group list-group-numbered">
+    <div class="input-group flex-nowrap w-100">
+        <input type="text" placeholder="Поиск..." @oninput=@(ProcessSearch) class="form-control"/>
+    </div>
+    <div style="max-height: 45vh; overflow-y: scroll; overflow-x: hidden; word-break: break-word">
+        @if (IsLoaded)
+        {
+            if (AllMetrics.Any())
+            {
+                @foreach (var metric in FilteredMetrics)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">@metric.Help.Description (@metric.Title)</div>
+                            @metric.Value
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p>Не удалось загрузить метрики</p>
+            }
+        }
+        else
+        {
+            <p>Загрузка</p>
+        }
+        
+    </div>
+</div>
+
+@code {
+    List<Metric> AllMetrics = new List<Metric>();
+    List<Metric> FilteredMetrics = new List<Metric>();
+    [Parameter]
+    public string Host { get; set; }
+    bool IsLoaded = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoaded = false;
+            try
+            {
+                var responseString = await new HttpClient().GetStringAsync( /*"http://10.10.10.31:9100/metrics"*/ Host);
+                var metrics = PrometeusParse.Parse(responseString);
+                AllMetrics = metrics;
+                FilteredMetrics = AllMetrics;
+                
+            }
+            catch (Exception)
+            {
+            }
+            IsLoaded = true;
+            StateHasChanged();
+        }
+
+    }
+
+    private void ProcessSearch(ChangeEventArgs args)
+    {
+        FilteredMetrics = AllMetrics.Where(metric => metric.Title.Contains(args.Value?.ToString() ?? "")).ToList();
+        StateHasChanged();
+    }
+
+}

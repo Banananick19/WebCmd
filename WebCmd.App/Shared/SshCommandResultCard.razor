@@ -1,0 +1,57 @@
+﻿@using WebCmd.Lib
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">@Title</h2>
+    </div>
+    <div class="card-body">
+        <div>
+            @if (IsLoaded)
+            {
+                <pre>
+                    @Result
+                </pre>
+            }
+            else
+            {   
+                <p>Загрузка...</p>
+            }
+            
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] 
+    public string Title { get; set; }
+    
+    [Parameter]
+    public string Host { get; set; }
+    
+    [Parameter]
+    public string Username { get; set; }
+    
+    [Parameter]
+    public string Password { get; set; }
+    
+    [Parameter]
+    public string Command { get; set; }
+
+    private bool IsLoaded { get; set; }
+    private string Result { get; set; } = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoaded = false;
+            var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
+            using (sshConnection)
+            {
+                Result = sshConnection.RunCommandWithResponse(Command);
+            }
+            IsLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+}

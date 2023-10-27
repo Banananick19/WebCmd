@@ -1,0 +1,54 @@
+﻿@using WebCmd.Lib
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">@Title</h2>
+    </div>
+    <div class="card-body">
+        <div>
+            @if (IsLoaded)
+            {
+                @if (IsSuccessPing)
+                {
+                    <p class="text-success">
+                        Доступен
+                    </p>
+                }
+                else
+                {
+                    <p class="text-danger">
+                        Недоступен
+                    </p>
+                }
+            }
+            else
+            {   
+                <p>Загрузка...</p>
+            }
+            
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Host { get; set; }
+    
+    [Parameter]
+    public string Title { get; set; }
+
+    bool IsLoaded = false;
+    bool IsSuccessPing = false;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var ping = await SshCmdService.StartProcessAsync(Host);
+            IsSuccessPing = ping.IsSuccess();
+            IsLoaded = true;
+            StateHasChanged();
+            ;
+        }
+    }
+
+}

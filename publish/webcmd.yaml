@@ -1,0 +1,60 @@
+﻿# docker build -t registry.nano35.ru/nano35-service/web-cmd:0.1.0 -f WebCmd.App/Dockerfile .
+# docker push registry.nano35.ru/nano35-service/web-cmd:0.1.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: service-preview
+  name: web-cmd
+  labels:
+    app: nano35
+    scope: service
+    role: domain
+    state: preview
+    domain: web-cmd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-cmd
+  template:
+    metadata:
+      name: web-cmd
+      labels:
+        app: web-cmd
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: Always
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: NotIn
+                    values:
+                      - "true"
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - web-cmd
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - image: registry.nano35.ru/nano35-service/web-cmd:0.1.0
+          imagePullPolicy: Always
+          name: service-web-cmd
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Publish
+            - name: ASPNETCORE_URLS
+              value: http://+:81
+            - name: DOMAIN_NAME
+              value: Service-web-cmd
+          ports:
+            - containerPort: 81
+              name: rest

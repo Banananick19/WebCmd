@@ -1,0 +1,48 @@
+﻿@page "/fetchdata"
+@using Microsoft.Extensions.Options
+@using Newtonsoft.Json
+@inject IOptions<Config> Config
+
+@*<PageTitle>Weather forecast</PageTitle>
+@using WebCmd.Lib
+@layout MainLayout
+<PingStatusCard Host="10.10.10.31" Title="10.10.10.31 статус"/>
+<PingStatusCard Host="10.10.10.70" Title="10.10.10.70 статус"/>
+<SshStatusCard Host="10.10.10.70" Title="10.10.10.70 ssh статус"/>
+<br/>
+<ActiveOvpnUsers/>
+<br/>
+<Metrics />*@
+@foreach (var configHost in Config.Value.Hosts)
+{
+    switch (configHost.Type)
+    {
+        case ConfigHost.HostType.Ping:
+            <PingStatusCard Host="@configHost.Host" Title="@(configHost.Host)"/>
+            break;
+        case ConfigHost.HostType.Ssh:
+            <SshStatusCard Host="@configHost.Host" Title="@($"shh {configHost.Host}")"/>
+            break;
+        case ConfigHost.HostType.PMetrics:
+            <h3>Metrics @configHost.Host</h3>
+            <Metrics Host="@configHost.Host"/>
+            break;
+        case ConfigHost.HostType.OvpnUsers:
+            <h3>Active users @configHost.Host</h3>
+            <ActiveOvpnUsers TelNetHost="@configHost.Host" TelNetPort="@(int.Parse(configHost.Args))"/>
+            break;
+        case ConfigHost.HostType.SshCommand:
+            var sshArgs = JsonConvert.DeserializeObject<SshCommandArgs>(configHost.Args);
+            @if (sshArgs != null)
+            {
+                <SshCommandResultCard Title="@($"{configHost.Host} ssh execute {sshArgs.Command}")" Host="@configHost.Host" Password="@sshArgs.Password" Command="@sshArgs.Command" Username="@sshArgs.Username"/>
+            }
+            break;
+        default:
+            throw new ArgumentOutOfRangeException();
+    }
+}
+
+@code {
+    
+}
