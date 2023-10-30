@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using WebCmd.App;
 using WebCmd.Lib;
+using Options = Microsoft.Extensions.Options.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +13,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient();
 builder.Configuration.AddConfiguration(new ConfigurationBuilder().AddJsonFile("appsettings.json").Build());
-builder.Services.Configure<Config>(builder.Configuration.GetSection("HOSTS"));
+builder.Services.ConfigureFromEnvVariable<Config>("HOSTS");
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -31,3 +34,17 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+
+
+public static class BuilderExt
+{
+    public static IServiceCollection ConfigureFromEnvVariable<T>(this IServiceCollection collection, string envName) where T : class 
+    {
+            var envValue = Environment.GetEnvironmentVariable(envName);
+            if (string.IsNullOrWhiteSpace(envName)) throw new ArgumentException("Empty env variable");
+            T? conf = JsonConvert.DeserializeObject<T>(envValue);
+            if (conf == null) throw new ArgumentException("Env value could not parse in excepted object");
+            collection.AddOptions();
+            return collection.AddSingleton<T>(conf!);
+    } 
+}

@@ -1,5 +1,5 @@
-﻿# docker build -t registry.nano35.ru/nano35-service/web-cmd:0.1.0 -f WebCmd.App/Dockerfile .
-# docker push registry.nano35.ru/nano35-service/web-cmd:0.1.0
+﻿# docker build -t registry.nano35.ru/nano35-service/web-cmd:0.1.2 -f WebCmd.App/Dockerfile .
+# docker push registry.nano35.ru/nano35-service/web-cmd:0.1.2
 
 apiVersion: apps/v1
 kind: Deployment
@@ -45,7 +45,7 @@ spec:
                       - web-cmd
               topologyKey: "kubernetes.io/hostname"
       containers:
-        - image: registry.nano35.ru/nano35-service/web-cmd:0.1.0
+        - image: registry.nano35.ru/nano35-service/web-cmd:0.1.2
           imagePullPolicy: Always
           name: service-web-cmd
           env:
@@ -55,6 +55,9 @@ spec:
               value: http://+:81
             - name: DOMAIN_NAME
               value: Service-web-cmd
+            - name: HOSTS
+              value: "{\"Hosts\": [{\"type\": 0,\"host\": \"10.10.10.31\", \"args\": \"\"},{\"type\": 0,\"host\": \"10.10.10.70\",\"args\": \"\"},{\"type\": 1,\"host\": \"10.10.10.70\",\"args\": \"\"},{\"type\": 2,\"host\": \"http://10.10.10.31:9100/metrics\",\"args\": \"\"},{\"type\": 3,\"host\": \"localhost\",\"args\": \"12345\"},{\"type\": 4,\"host\": \"10.10.10.31\",\"args\": \"{ 'command': 'ip a', 'username': 'root', 'password': 'N0t_@_Sp@1nder' }\"}]}"
+
           ports:
             - containerPort: 81
               name: rest

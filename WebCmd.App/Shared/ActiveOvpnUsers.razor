@@ -11,7 +11,9 @@
                 <div class="list-group-item d-flex justify-content-between align-items-start">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold">@OVPNUserInfo.Name (@OVPNUserInfo.ConnectedSince)</div>
-                        @OVPNUserInfo.RealAddress
+                        <p>@OVPNUserInfo.RealAddress</p>
+                        <p>Полученный трафик: <MbView Bytes="OVPNUserInfo.BytesReceived"/></p>
+                        <p>Отправленный трафик: <MbView Bytes="OVPNUserInfo.BytesSent"/></p>
                     </div>
                 </div>
             }
@@ -42,14 +44,17 @@
             {
                 IsLoaded = false;
                 var telnet = await TelnetWrapper.CreateConnection(TelNetHost, TelNetPort);
-                if (!telnet.IsConnected) return;
-                var statusResponse = await OVPNTelnet.GetStatusResponse(telnet);
-                var parsed = OVPNParser.ParseStatus(statusResponse);
-                var OVPNUserInfos = parsed;
-                AllOVPNUserInfos = OVPNUserInfos;
-                FilteredOVPNUserInfos = AllOVPNUserInfos;
-                IsLoaded = true;
-                StateHasChanged();
+                using (telnet)
+                {
+                    if (!telnet.IsConnected) return;
+                    var statusResponse = await OVPNTelnet.GetStatusResponse(telnet);
+                    var parsed = OVPNParser.ParseStatus(statusResponse);
+                    AllOVPNUserInfos = parsed;
+                    FilteredOVPNUserInfos = AllOVPNUserInfos;
+                    IsLoaded = true;
+                    StateHasChanged();
+                    telnet.Dispose();
+                }
             }
             catch (Exception)
             {
@@ -61,7 +66,7 @@
 
     private void ProcessSearch(ChangeEventArgs args)
     {
-        FilteredOVPNUserInfos = AllOVPNUserInfos.Where(OVPNUserInfo => OVPNUserInfo.Name.Contains(args.Value?.ToString() ?? "")).ToList();
+        FilteredOVPNUserInfos = AllOVPNUserInfos.Where(ovpnUserInfo => ovpnUserInfo.Name.Contains(args.Value?.ToString() ?? "")).ToList();
         StateHasChanged();
     }
 }

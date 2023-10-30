@@ -1,0 +1,5 @@
+﻿@(((double)Bytes / 1024 / 1024).ToString("0.00")) mb
+@code {
+    [Parameter]
+    public long Bytes { get; set; }
+}

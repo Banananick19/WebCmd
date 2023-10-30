@@ -34,12 +34,12 @@ public class SshConnection : IDisposable
 
 public static class SshClientsPool
 {
-    private static readonly List<SshConnection?> _clients = new List<SshConnection>();
+    private static readonly List<SshConnection?> _clients = new List<SshConnection?>();
 
     public static async Task<SshConnection> GetIfNullCreateConnect(string host, string username, string password)
     {
-        SshConnection client =
-            _clients.FirstOrDefault(c => c.ConnectionInfo.Host == host && c.ConnectionInfo.Username == username);
+        var client =
+            _clients.FirstOrDefault(c => c != null && c.ConnectionInfo.Host == host && c.ConnectionInfo.Username == username);
         if (client != null)
         {
             if (client.IsConnected) return client;

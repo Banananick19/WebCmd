@@ -17,7 +17,7 @@ public enum Options
 {
     SGA = 3
 }
-public class TelnetConnection
+public class TelnetConnection : IDisposable
 {
     TcpClient tcpSocket;
     int TimeOutMs = 2000; //стандартный таймаут
@@ -113,9 +113,14 @@ public class TelnetConnection
             }
         }
     }
+
+    public void Dispose()
+    {
+        tcpSocket.Close();
+    }
 }
 
-public class TelnetWrapper
+public class TelnetWrapper : IDisposable
 {
     private TelnetConnection _connection;
 
@@ -149,6 +154,12 @@ public class TelnetWrapper
     {
         _connection.WriteLine(text);
         return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _existedConnections.Remove(_connection);
+        _connection.Dispose();
     }
 }
 

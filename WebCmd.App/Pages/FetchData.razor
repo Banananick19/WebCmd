@@ -1,7 +1,8 @@
 ﻿@page "/fetchdata"
 @using Microsoft.Extensions.Options
 @using Newtonsoft.Json
-@inject IOptions<Config> Config
+@using System.Net.NetworkInformation
+@inject Config Config
 
 @*<PageTitle>Weather forecast</PageTitle>
 @using WebCmd.Lib
@@ -13,7 +14,7 @@
 <ActiveOvpnUsers/>
 <br/>
 <Metrics />*@
-@foreach (var configHost in Config.Value.Hosts)
+@*@foreach (var configHost in Config.Hosts)
 {
     switch (configHost.Type)
     {
@@ -38,11 +39,196 @@
                 <SshCommandResultCard Title="@($"{configHost.Host} ssh execute {sshArgs.Command}")" Host="@configHost.Host" Password="@sshArgs.Password" Command="@sshArgs.Command" Username="@sshArgs.Username"/>
             }
             break;
+        case ConfigHost.HostType.NetConnectionOnSsh:
+            var netSshArgs = JsonConvert.DeserializeObject<SshCommandArgs>(configHost.Args);
+            @if (netSshArgs != null)
+            {
+                <NetConnections Title="@($"{configHost.Host} net connections {netSshArgs.Command}")" Host="@configHost.Host" Password="@netSshArgs.Password" Command="@netSshArgs.Command" Username="@netSshArgs.Username"/>
+            }
+            break;
         default:
             throw new ArgumentOutOfRangeException();
     }
-}
+}*@
+
+<div class="p-3">
+    <h2>Ping</h2>
+    @foreach (var configHosts in PingHosts)
+    {
+        <div class="row">
+            @foreach (var configHost in configHosts)
+            {
+                <div class="col-4">
+                     <PingStatusCard Host="@configHost.Host" Title="@(configHost.Host)"/>
+                </div>
+            }
+        </div>
+    }
+    <br/>
+    <h2>Ssh</h2>
+    @foreach (var configHosts in SshStatusHosts)
+    {
+        <div class="row">
+            @foreach (var configHost in configHosts)
+            {
+                <div class="col-4">
+                     <SshStatusCard Host="@configHost.Host" Title="@(configHost.Host)"/>
+                </div>
+            }
+        </div>
+    }
+    <br/>
+    <h2>Ssh commands</h2>
+    @foreach (var configHosts in SshCommandHosts)
+    {
+        <div class="row">
+            @foreach (var configHost in configHosts)
+            {
+                <div class="col-6">
+                    @{
+                        var sshArgs = JsonConvert.DeserializeObject
+                            <SshCommandArgs>(configHost.Args);
+                        @if (sshArgs != null)
+                        {
+                            <SshCommandResultCard Title="@($"{configHost.Host} ssh execute {sshArgs.Command}")" Host="@configHost.Host" Password="@sshArgs.Password" Command="@sshArgs.Command" Username="@sshArgs.Username"/>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    }
+    <br/>
+    <h2>Net connections</h2>
+    @foreach (var configHosts in SshActiveNetConnectionsHosts)
+    {
+        <div class="row">
+            <div class="col">
+                @foreach (var configHost in configHosts)
+                {
+                    <div class="col">
+                        @{
+                            var netSshArgs = JsonConvert.DeserializeObject
+                                <SshCommandArgs>(configHost.Args);
+                            @if (netSshArgs != null)
+                            {
+                                <NetConnections Title="@($"{configHost.Host} net connections {netSshArgs.Command}")" Host="@configHost.Host" Password="@netSshArgs.Password" Command="@netSshArgs.Command" Username="@netSshArgs.Username"/>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    <br/>
+    <h2>OvpnUsers</h2>
+    @foreach (var configHost in OvpnUsersHosts)
+    {
+        <div class="row">
+            <h3>Active users @configHost.Host</h3>
+            <ActiveOvpnUsers TelNetHost="@configHost.Host" TelNetPort="@(int.Parse(configHost.Args))"/>
+        </div>
+    }
+    <br/>
+    <h2>Metrics</h2>
+    @foreach (var configHost in MetricsHosts)
+    {
+        <div class="row">
+           <h3>Metrics @configHost.Host</h3>
+            <Metrics Host="@configHost.Host"/>
+        </div>
+    }
+</div>
+
 
 @code {
-    
+    List<List<ConfigHost>> PingHosts = new List<List<ConfigHost>>();
+    List<List<ConfigHost>> SshStatusHosts = new List<List<ConfigHost>>();
+    List<List<ConfigHost>> SshCommandHosts = new List<List<ConfigHost>>();
+    List<List<ConfigHost>> SshActiveNetConnectionsHosts = new List<List<ConfigHost>>();
+    List<ConfigHost> OvpnUsersHosts = new List<ConfigHost>();
+    List<ConfigHost> MetricsHosts = new List<ConfigHost>();
+
+
+    protected override void OnInitialized()
+    {
+        PingHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.Ping).Aggregate(new List<List<ConfigHost>>(),
+            (list, c) =>
+            {
+                if (list.Count == 0)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                if (list.Last().Count == 3)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                var last = list.Last();
+                list.RemoveAt(list.Count - 1);
+                last.Add(c);
+                list.Add(last);
+                return list;
+            }).ToList();
+        SshStatusHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.Ssh).Aggregate(new List<List<ConfigHost>>(),
+            (list, c) =>
+            {
+                if (list.Count == 0)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                if (list.Last().Count == 3)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                var last = list.Last();
+                list.RemoveAt(list.Count - 1);
+                last.Add(c);
+                list.Add(last);
+                return list;
+            }).ToList();
+        SshCommandHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.SshCommand).Aggregate(new List<List<ConfigHost>>(),
+            (list, c) =>
+            {
+                if (list.Count == 0)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                if (list.Last().Count == 2)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                var last = list.Last();
+                list.RemoveAt(list.Count - 1);
+                last.Add(c);
+                list.Add(last);
+                return list;
+            }).ToList();
+        SshActiveNetConnectionsHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.NetConnectionOnSsh).Aggregate(new List<List<ConfigHost>>(),
+            (list, c) =>
+            {
+                if (list.Count == 0)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                if (list.Last().Count == 2)
+                {
+                    list.Add(new List<ConfigHost>() {c});
+                    return list;
+                }
+                var last = list.Last();
+                list.RemoveAt(list.Count - 1);
+                last.Add(c);
+                list.Add(last);
+                return list;
+            }).ToList();
+        OvpnUsersHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.OvpnUsers).ToList();
+        MetricsHosts = Config.Hosts.Where(c => c.Type == ConfigHost.HostType.PMetrics).ToList();
+    }
+
 }

@@ -1,0 +1,110 @@
+﻿@using WebCmd.Lib
+
+<div class="list-group list-group-numbered">
+    <div class="card-header">
+        <h2 class="card-title">@Title</h2>
+    </div>
+    <div class="input-group flex-nowrap w-100">
+        <input type="text" placeholder="Поиск..." @oninput=@(ProcessSearch) class="form-control"/>
+    </div>
+    <div style="max-height: 45vh; overflow-y: scroll; overflow-x: hidden; word-break: break-word">
+        @if (IsLoaded)
+        {
+            <table class="table" style="table-layout: fixed">
+                <thead>
+                <tr>
+                    <th scope="col">NetId</th>
+                    <th scope="col">LocalAddress</th>
+                    <th scope="col">PeerAddress</th>
+                    <th scope="col">ProcessPid</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (FilteredNetConnections.Any())
+                {
+                    @foreach (var NetConnection in FilteredNetConnections)
+                    {
+                        <tr scope="row">
+                            <td>
+                                @NetConnection.Protocol
+                            </td>
+                            <td>
+                                @NetConnection.LocalAddress
+                            </td>
+                            <td>
+                                @NetConnection.PeerAddress
+                            </td>
+                            <td>
+                                <p>@NetConnection.PidProcess</p>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <span>Не загружено</span>
+                }
+
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>Загрузка...</p>
+        }
+      
+    </div>
+</div>
+
+
+
+
+
+@code {
+    [Parameter] 
+    public string Title { get; set; }
+    
+    [Parameter]
+    public string Host { get; set; }
+    
+    [Parameter]
+    public string Username { get; set; }
+    
+    [Parameter]
+    public string Password { get; set; }
+    
+    [Parameter]
+    public string Command { get; set; }
+
+    private bool IsLoaded { get; set; }
+    List<NetConnection> AllNetConnections = new List<NetConnection>();
+    List<NetConnection> FilteredNetConnections = new List<NetConnection>();
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoaded = false;
+            try
+            {
+                var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
+                using (sshConnection)
+                {
+                    var commandResult = sshConnection.RunCommandWithResponse(Command);
+                    AllNetConnections = ParserNetConnections.ParseConnections(commandResult);
+                    FilteredNetConnections = AllNetConnections;
+                    sshConnection.Dispose();
+                }
+            } catch (Exception) {}
+            
+            IsLoaded = true;
+            StateHasChanged();
+        }
+    }
+    
+    private void ProcessSearch(ChangeEventArgs args)
+    {
+        FilteredNetConnections = AllNetConnections.Where(connection => connection.PeerAddress.Contains(args.Value?.ToString() ?? "") || connection.PidProcess.Contains(args.Value?.ToString() ?? "")).ToList();
+        StateHasChanged();
+    }
+}

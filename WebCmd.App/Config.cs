@@ -37,7 +37,8 @@ public class ConfigHost
         Ssh = 1,
         PMetrics = 2,
         OvpnUsers = 3,
-        SshCommand = 4
+        SshCommand = 4,
+        NetConnectionOnSsh = 5
     }
 }
 

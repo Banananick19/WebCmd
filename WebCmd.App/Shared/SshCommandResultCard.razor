@@ -44,13 +44,21 @@
         if (firstRender)
         {
             IsLoaded = false;
-            var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
-            using (sshConnection)
+            try
             {
-                Result = sshConnection.RunCommandWithResponse(Command);
+                var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
+                using (sshConnection)
+                {
+                    Result = sshConnection.RunCommandWithResponse(Command);
+                    sshConnection.Dispose();
+                }
+                IsLoaded = true;
+                StateHasChanged();
             }
-            IsLoaded = true;
-            StateHasChanged();
+            catch (Exception)
+            {
+            }
+
         }
     }
 
