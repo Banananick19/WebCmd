@@ -136,13 +136,10 @@ public class TelnetWrapper : IDisposable
     public static Task<TelnetWrapper> CreateConnection(string host, int port)
     {
         var con = _existedConnections.FirstOrDefault(i => i.Host == host && i.Port == port);
-        if (con == null || con.IsConnected == false)
-        {
-            con = new TelnetConnection(host, port);
-            _existedConnections.Add(con);
-            return Task.FromResult(new TelnetWrapper(con));
-        }
-        else return Task.FromResult(new TelnetWrapper(con));
+        if (con != null && con.IsConnected != false) return Task.FromResult(new TelnetWrapper(con));
+        con = new TelnetConnection(host, port);
+        _existedConnections.Add(con);
+        return Task.FromResult(new TelnetWrapper(con));
     }
 
     public Task<string> ReadLastMessage()
