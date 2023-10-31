@@ -22,6 +22,7 @@ public class SshConnection : IDisposable
 
     public string RunCommandWithResponse(string command)
     {
+        if (_client.IsConnected == false) return "";
         var sshCommand = _client.RunCommand(command);
         return string.IsNullOrEmpty(sshCommand.Result) ? sshCommand.Error : sshCommand.Result;
     }
@@ -34,20 +35,21 @@ public class SshConnection : IDisposable
 
 public static class SshClientsPool
 {
-    private static readonly List<SshConnection?> _clients = new List<SshConnection?>();
+    private static readonly List<SshConnection?> Clients = new List<SshConnection?>();
 
     public static async Task<SshConnection> GetIfNullCreateConnect(string host, string username, string password)
     {
         var client =
-            _clients.FirstOrDefault(c => c != null && c.ConnectionInfo.Host == host && c.ConnectionInfo.Username == username);
+            Clients.FirstOrDefault(c => c != null && c.ConnectionInfo.Host == host && c.ConnectionInfo.Username == username);
         if (client != null)
         {
             if (client.IsConnected) return client;
-            _clients.Remove(client);
+            Clients.Remove(client);
+            client.Dispose();
         }
         var newClient = new SshConnection(host, username, password);
         await newClient.ConnectAsync();
-        _clients.Add(newClient);
+        Clients.Add(newClient);
         return newClient;
     }
 }

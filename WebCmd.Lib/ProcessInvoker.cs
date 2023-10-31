@@ -4,47 +4,49 @@ namespace WebCmd.Lib;
 
 public interface IProcessInvoker
 {
-    void Process(string command, string arguments);
+    string GetCommandName();
+    void Process(string arguments);
     string ResultProcess();
-    Task ProcessAsync(string command, string arguments);
+    Task ProcessAsync(string arguments);
     bool IsSuccess();
 }
 
 public abstract class ProcessInvoker : IProcessInvoker
 {
-    protected Process? _currentProcess = new Process();
+    protected Process? CurrentProcess = new Process();
 
-    public void Process(string command, string arguments)
+    public abstract string GetCommandName();
+
+    public void Process(string arguments)
     {
-        _currentProcess = System.Diagnostics.Process.Start(new ProcessStartInfo()
+        CurrentProcess = System.Diagnostics.Process.Start(new ProcessStartInfo()
         {
-            FileName = command,
+            FileName = GetCommandName(),
             Arguments = arguments,
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true
         });
-        _currentProcess?.WaitForExit();
+        CurrentProcess?.WaitForExit();
     }
 
     public string ResultProcess()
     {
-        if (_currentProcess == null) return default;
-        var result = _currentProcess.StandardOutput.ReadToEnd();
+        var result = CurrentProcess?.StandardOutput.ReadToEnd() ?? "";
         return result;
     }
 
-    public async Task ProcessAsync(string command, string arguments)
+    public async Task ProcessAsync(string arguments)
     {
-        _currentProcess = System.Diagnostics.Process.Start(new ProcessStartInfo()
+        CurrentProcess = System.Diagnostics.Process.Start(new ProcessStartInfo()
         {
-            FileName = command,
+            FileName = GetCommandName(),
             Arguments = arguments,
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true
         });
-        if (_currentProcess != null) await _currentProcess.WaitForExitAsync();
+        if (CurrentProcess != null) await CurrentProcess.WaitForExitAsync();
     }
 
     public abstract bool IsSuccess();
@@ -52,14 +54,24 @@ public abstract class ProcessInvoker : IProcessInvoker
 
 public class PingProcessInvoker : ProcessInvoker
 {
+    public override string GetCommandName()
+    {
+        return "ping";
+    }
+
     public override bool IsSuccess()
     {
-        return _currentProcess is { ExitCode: 0 };
+        return CurrentProcess is { ExitCode: 0 };
     }
 }
 
 public class SshProcessInvoker : ProcessInvoker
 {
+    public override string GetCommandName()
+    {
+        return "nmap";
+    }
+
     public override bool IsSuccess()
     {
         var result = ResultProcess();
@@ -74,7 +86,10 @@ public static class PingCmdService
     public static async Task<IProcessInvoker> StartProcessAsync(string host)
     {
         var pI = new PingProcessInvoker();
-        await pI.ProcessAsync("ping", $"-c 4 {host}");
+        if (OperatingSystem.IsWindows())
+        {
+            await pI.ProcessAsync(host);
+        } else await pI.ProcessAsync( $"-c 4 {host}");
         return pI;
     }
 }
@@ -84,7 +99,7 @@ public static class SshCmdService
     public static async Task<IProcessInvoker> StartProcessAsync(string host)
     {
         var pI = new SshProcessInvoker();
-        await pI.ProcessAsync("nmap", $"-p22 {host}");
+        await pI.ProcessAsync($"-p22 {host}");
         return pI;
     }
 }

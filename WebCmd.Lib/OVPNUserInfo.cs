@@ -29,19 +29,20 @@ public static class OVPNParser
     public static List<OVPNUserInfo> ParseStatus(string statusResponse)
     {
         var users = new List<OVPNUserInfo>();
-        var splited = statusResponse.Split("\n");
-        var indexOfStartUsers = splited.Select((l, i) => new { Line = l, Index = i })
-            .Where(l => l.Line.StartsWith("Common Name")).FirstOrDefault()?.Index;
+        if (string.IsNullOrWhiteSpace(statusResponse)) return users;
+        var splinted = statusResponse.Split("\n");
+        var indexOfStartUsers = splinted
+            .Select((l, i) => new { Line = l, Index = i }).FirstOrDefault(l => l.Line.StartsWith("Common Name"))?.Index;
         if (indexOfStartUsers == null) return users;
         var currentLineIndex = indexOfStartUsers.Value + 1;
-        if (splited[currentLineIndex].Contains("ROUTING TABLE")) return users;
-        var currentLine = splited[currentLineIndex];
+        if (splinted[currentLineIndex].Contains("ROUTING TABLE")) return users;
+        var currentLine = splinted[currentLineIndex];
         while (!currentLine.Contains("ROUTING TABLE"))
         {
             var user = ParseStatusUserLine(currentLine);
             users.Add(user);
             currentLineIndex += 1;
-            currentLine = splited[currentLineIndex];
+            currentLine = splinted[currentLineIndex];
         }
         return users;
     }
@@ -70,6 +71,7 @@ public static class OVPNTelnet
 {
     public static async Task<string> GetStatusResponse(TelnetWrapper telnetClient)
     {
+        if (!telnetClient.IsConnected) return "";
         await telnetClient.ReadLastMessage();
         await telnetClient.SendText("status");
         Thread.Sleep(500);//даем время сброситься интерфейсу (судя по всему это нужно)

@@ -87,14 +87,10 @@
             IsLoaded = false;
             try
             {
-                var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
-                using (sshConnection)
-                {
-                    var commandResult = sshConnection.RunCommandWithResponse(Command);
-                    AllNetConnections = ParserNetConnections.ParseConnections(commandResult);
-                    FilteredNetConnections = AllNetConnections;
-                    sshConnection.Dispose();
-                }
+                using var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
+                var commandResult = sshConnection.RunCommandWithResponse(Command);
+                AllNetConnections = ParserNetConnections.ParseConnections(commandResult);
+                FilteredNetConnections = AllNetConnections;
             } catch (Exception) {}
             
             IsLoaded = true;

@@ -14,7 +14,6 @@ public static class ParserNetConnections
             {
                 var connection = new NetConnection();
                 var splited = line.Split(" ").Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            
                 connection.Protocol = splited[0];
                 connection.LocalAddress = splited[4];
                 connection.PeerAddress = splited[5];

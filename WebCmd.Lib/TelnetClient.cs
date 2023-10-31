@@ -122,11 +122,11 @@ public class TelnetConnection : IDisposable
 
 public class TelnetWrapper : IDisposable
 {
-    private TelnetConnection _connection;
+    private readonly TelnetConnection _connection;
 
     public bool IsConnected => _connection.IsConnected;
 
-    private static List<TelnetConnection> _existedConnections = new List<TelnetConnection>();
+    private static readonly List<TelnetConnection> _existedConnections = new List<TelnetConnection>();
 
     protected TelnetWrapper(TelnetConnection connection)
     {
