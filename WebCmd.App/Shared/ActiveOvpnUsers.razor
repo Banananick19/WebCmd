@@ -43,18 +43,14 @@
             try
             {
                 IsLoaded = false;
-                var telnet = await TelnetWrapper.CreateConnection(TelNetHost, TelNetPort);
-                using (telnet)
-                {
-                    if (!telnet.IsConnected) return;
-                    var statusResponse = await OVPNTelnet.GetStatusResponse(telnet);
-                    var parsed = OVPNParser.ParseStatus(statusResponse);
-                    AllOVPNUserInfos = parsed;
-                    FilteredOVPNUserInfos = AllOVPNUserInfos;
-                    IsLoaded = true;
-                    StateHasChanged();
-                    telnet.Dispose();
-                }
+                using var telnet = await TelnetWrapper.CreateConnection(TelNetHost, TelNetPort);
+                if (!telnet.IsConnected) return;
+                var statusResponse = await OVPNTelnet.GetStatusResponse(telnet);
+                var parsed = OVPNParser.ParseStatus(statusResponse);
+                AllOVPNUserInfos = parsed;
+                FilteredOVPNUserInfos = AllOVPNUserInfos;
+                IsLoaded = true;
+                StateHasChanged();
             }
             catch (Exception)
             {

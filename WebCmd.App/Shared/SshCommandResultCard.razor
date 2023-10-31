@@ -46,12 +46,8 @@
             IsLoaded = false;
             try
             {
-                var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
-                using (sshConnection)
-                {
-                    Result = sshConnection.RunCommandWithResponse(Command);
-                    sshConnection.Dispose();
-                }
+                using var sshConnection = await SshClientsPool.GetIfNullCreateConnect(Host, Username, Password);
+                Result = sshConnection.RunCommandWithResponse(Command);
                 IsLoaded = true;
                 StateHasChanged();
             }
